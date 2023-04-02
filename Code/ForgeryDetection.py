@@ -1,0 +1,161 @@
+import cv2 as cv
+import numpy as np
+from sklearn.cluster import DBSCAN
+import matplotlib.pyplot as plt
+
+
+class ForgeryDetection:
+    display = False
+    clusters = None
+    
+    def __init__(self, img):
+        self.img = img
+
+    def KeyPointDetector(self, img1, filename):
+        gray1 = cv.cvtColor(img1, cv.COLOR_BGR2GRAY)
+        sift = cv.SIFT_create()
+        kp1, descriptors_1 = sift.detectAndCompute(gray1, None)
+        dst = cv.drawKeypoints(gray1, kp1, img1)
+        filename = filename.split('.')
+        self.filename = filename[0] + "_KeyPoints."+filename[1]
+        
+        return img1, dst, self.filename
+        
+
+    def ForgeryDetect(self, img1, filename):
+        gray1 = cv.cvtColor(img1, cv.COLOR_BGR2GRAY)
+        sift = cv.SIFT_create()
+        kp1, descriptors_1 = sift.detectAndCompute(gray1, None)
+        self.filename = filename
+        self.img = img1
+        dst2, name = self.locateForgery(kp1, descriptors_1)
+        
+        return dst2, name
+    
+        
+    def displayPlot(self):
+        
+        n_noise_ = list(self.clusters.labels_).count(-1)
+        n_clusters_ = len(set(self.clusters.labels_)) - (1 if -1 in self.clusters.labels_ else 0)
+        print(n_noise_)
+        print(n_clusters_)
+        unique_labels = set(self.clusters.labels_)
+        core_samples_mask = np.zeros_like(self.clusters.labels_, dtype=bool)
+        core_samples_mask[self.clusters.core_sample_indices_] = True
+
+        colors = [plt.cm.Spectral(each) for each in np.linspace(0, 1, len(unique_labels))]
+        for k, col in zip(unique_labels, colors):
+
+            class_member_mask = (self.clusters.labels_ == k)
+
+            xy = self.descriptors[class_member_mask & core_samples_mask]
+            plt.plot(
+                xy[:, 0],
+                xy[:, 1],
+                "o",
+                markerfacecolor=tuple(col),
+                markeredgecolor="k",
+                markersize=14,
+            )
+
+            xy = self.descriptors[class_member_mask & ~core_samples_mask]
+            """plt.plot(
+                xy[:, 0],
+                xy[:, 1],
+                "x",
+                markerfacecolor=tuple(col),
+                markeredgecolor="k",
+                markersize=6,
+            )"""
+
+        plt.title(f"Estimated number of self.clusters: {n_clusters_}")
+        plt.show()
+    
+
+    def locateForgery(self, kp, descriptors, eps = 40, min_sample = 2):
+        
+        self.clusters = DBSCAN(eps=eps, min_samples=min_sample).fit(descriptors) # Find self.clusters using DBSCAN
+        size=np.unique(self.clusters.labels_).shape[0]-1 
+        if (size==0) and (np.unique(self.clusters.labels_)[0]==-1):
+            print('Pas de falsification !')
+            return None, None                                               # If no self.clusters are found return
+        if size==0:
+            size=1
+        
+        
+        cluster_list = [[] for i in range(size)] # List of list to store points belonging to the same cluster
+        for idx in range(len(kp)):
+            if self.clusters.labels_[idx] != -1:
+                cluster_list[self.clusters.labels_[idx]].append((int(kp[idx].pt[0]),int(kp[idx].pt[1])))
+            for points in cluster_list:
+                if len(points) > 1:
+                    for idx1 in range(1,len(points)):
+                        cv.line(self.img, points[0], points[idx1], (255,0,0), 5)  # Draw line between the points in a same cluster
+        
+        filename = self.filename.split('.')
+        name = filename[0] + "_ForgeryDetected."+filename[1]
+        return self.img, name
+    
+    
+    
+    
+    
+    
+    """Reduire la dimension des descripteurs SIFT
+        mean, _ = cv.PCACompute(descriptors, mean=None)
+        # Centrage des données
+        descriptors_centered = descriptors - mean
+        # Calcul des composantes principales et des valeurs propres
+        _, eigenvecs = cv.PCACompute(descriptors_centered, mean=None, maxComponents=64)
+        # Réduction de dimension
+        descriptors_reduced = np.dot(descriptors_centered, eigenvecs.T)
+        # Affichage de la nouvelle shape
+        print(descriptors_reduced.shape)
+        """""""""""""""""""""""""""""""""""""""""""""
+        
+        
+"""def voisinage(self, descrip, pt, epsilon):
+    neighbors = []
+    for i,point in enumerate(descrip):
+        distance = np.linalg.norm(point - pt)
+        if distance <= epsilon:
+            neighbors.append(i)
+    
+    return neighbors
+
+
+def extend_cluster(self, D, P, PtsVoisins, cluster_index, eps, min_sample, labels, visited):
+    labels[P.astype(dtype=int)] = cluster_index
+    #i = 0
+    for i,pt in enumerate(PtsVoisins):
+        P_prime = i
+        if not visited[P_prime]:
+            visited[P_prime] = True
+            PtsVoisins_prime = self.voisinage(D, D[P_prime], eps)
+            if len(PtsVoisins_prime) >= min_sample:
+                PtsVoisins.extend(PtsVoisins_prime)
+        if labels[P_prime] == 0:
+            labels[P_prime] = cluster_index
+        #i += 1
+
+def dbscan(self, D, eps, min_sample):
+    
+    n = D.shape[0]
+    visited = np.zeros(n, dtype=bool)
+    labels = np.zeros(n, dtype=int)
+    cluster_index = 0
+    
+    # Parcours des points non visités
+    for i,pt in enumerate(D):
+        if not visited[i]:
+            visited[i] = True
+            PtsVoisins = self.voisinage(D, pt, eps)
+            print(len(PtsVoisins))
+            if len(PtsVoisins) < min_sample:
+                labels[i] = -1
+            else:
+                cluster_index += 1
+                self.extend_cluster(D, pt, PtsVoisins, cluster_index, eps, min_sample, labels, visited)
+                
+    return labels
+"""

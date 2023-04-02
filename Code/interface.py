@@ -1,95 +1,134 @@
-from PyQt5 import QtWidgets, QtGui, QtCore
-from PyQt5.QtWidgets import QWidget, QApplication, QLabel, QVBoxLayout, QHBoxLayout, QToolButton, QAction, QTreeView
-from PyQt5.QtGui import QPixmap, QImage, QColor, QIcon
-from PyQt5.QtCore import pyqtSignal, pyqtSlot, Qt,QObject
+from PyQt5 import QtGui
+from PyQt5.QtWidgets import *
+from PyQt5.QtGui import *
+from PyQt5.QtCore import *
 import sys
 import cv2
 import numpy as np
-import KeyPointDetection as kpd
-import os
+from ForgeryDetection import ForgeryDetection
+from PyQt5 import QtWidgets, QtGui, QtCore
 
-class SourceTree(QTreeView):
-    def __init__(self, main, parent=None):
-        super(SourceTree, self).__init__(parent)
-        self.main = main
-        self.setDragEnabled(True)
-        self.setDragDropMode(QtWidgets.QAbstractItemView.DragOnly)
-        self.setDefaultDropAction(QtCore.Qt.CopyAction)
-        self.setAlternatingRowColors(True)
-        self.setSelectionMode(QtWidgets.QAbstractItemView.MultiSelection)
- 
- 
-    def set_source(self, folder):
-        self.up_folder = os.path.dirname(folder)
-        self.dirModel = QtGui.QFileSystemModel()
-        self.dirModel.setRootPath(QtCore.QDir.homePath())
-        self.setModel(self.dirModel)
-        self.setRootIndex(self.dirModel.index(self.up_folder)) 
-        self.setWordWrap(True)
-        self.hideColumn(1)
-        self.hideColumn(2)
-        self.hideColumn(3)
-        idx = self.dirModel.index(folder)
-        self.expand(idx)
-        #FIXME the following line don't works on PyQt 4.7.0
-        self.scrollTo(idx, QtGui.QAbstractItemView.EnsureVisible)
 
 class App(QWidget):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Qt static label demo")
-        self.disply_width = 1280
-        self.display_height = 720
-        # create the label that holds the image
+    
         self.image_label = QLabel(self)
-        self.image_label.resize(self.disply_width, self.display_height)
+        self.image_label.setAlignment(QtCore.Qt.AlignCenter)
+        self.image_label.setMinimumSize(1280, 720)
+        self.loadButton = QPushButton('Charger les images', self)
+        #self.loadButton.setGeometry(QtCore.QRect(10, 10, 100, 30))
+        self.loadButton.clicked.connect(self.convert_cv_qt)
         
-        # create a text label
-        self.textLabel = QLabel('Image')
+        self.image_info = QLabel(self)
+        self.image_info.setGeometry(10, 700, 700, 20)
+        self.image_info.setText("Image: " + " - Taille: ")
+        
+        self.forgeryButton = QPushButton('Détection de la falsification', self)
+        self.forgeryButton.clicked.connect(self.forgeryDetection)
+        
+        # Créer un bouton pour afficher le plot
+        self.plotButton = QPushButton('Afficher le plot', self)
+        self.plotButton.clicked.connect(self.displayPlot)
+        
+        
+        self.setFocusPolicy(QtCore.Qt.StrongFocus)
+        self.setFocus()
+        
+        self.detectButton = QPushButton("Détection de Points d'intérêt", self)
+        self.detectButton.clicked.connect(self.keypointsDetection)
+        
+        self.forgeryButton.setVisible(False)
+        self.plotButton.setVisible(False)
+        self.detectButton.setVisible(False)
+        
+        layout = QVBoxLayout()
+        layout.addWidget(self.image_label)
+        layout.addWidget(self.loadButton)
+        layout.addWidget(self.detectButton)
+        layout.addWidget(self.forgeryButton)
+        layout.addWidget(self.plotButton)
+        self.setLayout(layout)
 
-        # create a vertical box layout and add the two labels
-        vbox = QVBoxLayout()
-        vbox.addWidget(self.image_label)
-        vbox.addWidget(self.textLabel)
+        
+        self.images = []
+        self.imagesOCV = []
+        self.current_index = 0
+        self.image_filename = []
+        
     
-        # set the vbox layout as the widgets layout
-        self.setLayout(vbox)
-
-        self.button = QToolButton()
-        self.button.setText("button")
-        icon = QIcon()
-        icon.addFile("left.svg")
-        self.button.setIcon(icon)
-        vbox.addWidget(self.button)
-        
-        cv_img1 = cv2.imread("CoMoFoD_small_v2/001_O.png")
-        cv_img2 = cv2.imread("CoMoFoD_small_v2/001_F.png")
-        multi = np.concatenate((cv_img1, cv_img2), axis=1)
-        
-        kp = kpd.KeyPoint()
-        self.button.clicked.connect(lambda : kp.KeyPointDetector(cv_img1, cv_img2))
-        if kp.display:
-            print("if")
-            qt_img2 = self.convert_cv_qt(kp.KPimg)
-            self.image_label.setPixmap(qt_img2)
-        else:
-            print(kp.display)
-            qt_img1 = self.convert_cv_qt(multi)
-            self.image_label.setPixmap(qt_img1)
+    def displayPlot(self):
+        forgery_detector = ForgeryDetection(self.imagesOCV[self.current_index])
+        forgery_detector.displayPlot()
 
     
-    def convert_cv_qt(self, cv_img):
-        """Convert from an opencv image to QPixmap"""
-        rgb_image = cv2.cvtColor(cv_img, cv2.COLOR_BGR2RGB)
-        h, w, ch = rgb_image.shape
-        bytes_per_line = ch * w
-        convert_to_Qt_format = QtGui.QImage(rgb_image.data, w, h, bytes_per_line, QtGui.QImage.Format_RGB888)
-        p = convert_to_Qt_format.scaled(self.disply_width, self.display_height, Qt.KeepAspectRatio)
-        return QPixmap.fromImage(p)
+            
+    def keypointsDetection(self):
+        forgery_detector = ForgeryDetection(self.imagesOCV[self.current_index])
+        img_orig, img, filename = forgery_detector.KeyPointDetector(self.imagesOCV[self.current_index], self.image_filename[self.current_index])
+        
+        if img is not None:
+            self.forgeryButton.setVisible(True)    
+            qimage = QImage(img.data, img.shape[1], img.shape[0], QImage.Format_RGB888)
+            self.images.append(qimage)
+            self.image_filename.append(filename)
+            self.imagesOCV.append(img_orig)
+            self.DisplayImages()    
+            
+    
+    def forgeryDetection(self):
+        forgery_detector = ForgeryDetection(self.imagesOCV[self.current_index])
+        img, name = forgery_detector.ForgeryDetect(self.imagesOCV[self.current_index], self.image_filename[self.current_index])
+        
+        if img is not None:
+            self.plotButton.setVisible(True)
+            qimage = QImage(img.data, img.shape[1], img.shape[0], QImage.Format_RGB888)
+            self.images.append(qimage)
+            self.image_filename.append(name)
+            self.imagesOCV.append(img)
+            self.DisplayImages() 
+        
+    
+            
+    def convert_cv_qt(self):
+        file_names, _ = QFileDialog.getOpenFileNames(self, 'Ouvrir une image', '', 'Images (*.png *.xpm *.jpg *.bmp)')
+        self.detectButton.setVisible(True)
+        for file_name in file_names:
+            image = cv2.imread(file_name)
+            image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+            qimage = QImage(image.data, image.shape[1], image.shape[0], QImage.Format_RGB888)
+            self.image_filename.append(file_name)
+            self.images.append(qimage)
+            self.imagesOCV.append(image)
+            self.DisplayImages()
+    
+    
+    def DisplayImages(self):
+        if self.images:
+            pixmap = QPixmap.fromImage(self.images[self.current_index])
+            self.image_info.setText("Image: " + self.image_filename[self.current_index] + " - Taille: " + str(self.imagesOCV[self.current_index].shape))
+            self.image_label.setPixmap(pixmap)
+    
+    
+    def keyPressEvent(self, event):
+        
+        # Permet de naviguer entre les images avec les touches gauche et droite du clavier
+        print(self.current_index)
+        if event.key() == Qt.Key.Key_Left:
+            
+            if len(self.images) > 1:
+                self.current_index = (self.current_index - 1) % len(self.images)
+                self.DisplayImages()
+                
+        elif event.key() == Qt.Key.Key_Right:
+
+            if len(self.images) > 1:
+                self.current_index = (self.current_index + 1) % len(self.images)
+                self.DisplayImages()
+        
     
 if __name__=="__main__":
-    app = QApplication(sys.argv)
+    app = QApplication([])
     a = App()
-    tree = SourceTree(app)
     a.show()
     sys.exit(app.exec_())
