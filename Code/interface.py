@@ -7,15 +7,19 @@ import cv2
 import numpy as np
 from ForgeryDetection import ForgeryDetection
 from PyQt5 import QtWidgets, QtGui, QtCore
+import keras
+from keras.models import load_model
 
+IMG_SIZE = 224
 
 class App(QWidget):
     def __init__(self):
         super().__init__()
     
         self.image_label = QLabel(self)
-        self.image_label.setAlignment(QtCore.Qt.AlignCenter)
+        self.image_label.setAlignment(QtCore.Qt.AlignLeft)
         self.image_label.setMinimumSize(1280, 720)
+        self.image_label.setGeometry(50, 150, 1280, 720)
         self.loadButton = QPushButton('Charger les images', self)
         #self.loadButton.setGeometry(QtCore.QRect(10, 10, 100, 30))
         self.loadButton.clicked.connect(self.convert_cv_qt)
@@ -42,6 +46,12 @@ class App(QWidget):
         self.plotButton.setVisible(False)
         self.detectButton.setVisible(False)
         
+        self.cnnButton = QPushButton("CNN", self)
+        self.cnnButton.clicked.connect(self.Predict)
+        self.cnnButton.setVisible(False)
+        
+        self._load_model = load_model("modelForgery.h5")
+        
         layout = QVBoxLayout()
         layout.addWidget(self.image_label)
         layout.addWidget(self.loadButton)
@@ -61,7 +71,16 @@ class App(QWidget):
         forgery_detector = ForgeryDetection(self.imagesOCV[self.current_index])
         forgery_detector.displayPlot()
 
-    
+    def Predict(self):
+        img_resized = cv2.resize(self.imagesOCV[self.current_index], (IMG_SIZE, IMG_SIZE))
+        h,w,_ = img_resized.shape
+        img_resized.shape = (-1, h, w, 3)
+        
+        img_resized = img_resized.astype('float')
+        img_resized = img_resized/255.0
+        print(img_resized.shape)
+        prediction = self._load_model.predict(img_resized)
+        print(prediction)
             
     def keypointsDetection(self):
         forgery_detector = ForgeryDetection(self.imagesOCV[self.current_index])
@@ -73,6 +92,7 @@ class App(QWidget):
             self.images.append(qimage)
             self.image_filename.append(filename)
             self.imagesOCV.append(img_orig)
+            self.imagesOCV.append(img)
             self.DisplayImages()    
             
     
@@ -91,15 +111,18 @@ class App(QWidget):
     
             
     def convert_cv_qt(self):
-        file_names, _ = QFileDialog.getOpenFileNames(self, 'Ouvrir une image', '', 'Images (*.png *.xpm *.jpg *.bmp)')
+        file_names, _ = QFileDialog.getOpenFileNames(self, 'Ouvrir une image', '', 'Images (*.png *.xpm *.jpeg *.bmp *.tif *.jpg)')
         self.detectButton.setVisible(True)
+        self.cnnButton.setVisible(True)
+        
         for file_name in file_names:
             image = cv2.imread(file_name)
+            image = cv2.resize(image, (512,512))
+            self.imagesOCV.append(image)
             image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
             qimage = QImage(image.data, image.shape[1], image.shape[0], QImage.Format_RGB888)
             self.image_filename.append(file_name)
             self.images.append(qimage)
-            self.imagesOCV.append(image)
             self.DisplayImages()
     
     
