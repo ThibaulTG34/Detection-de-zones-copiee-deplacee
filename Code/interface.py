@@ -35,8 +35,8 @@ class MainWindowApp(QMainWindow):
         self.splitter.addWidget(self.sift_detector)
         self.splitter.addWidget(self.CNN_detector)
 
-        #self.setAttribute(QtCore.Qt.WA_StyledBackground, True)
-        #self.setStyleSheet('background-color: lightblack')
+        # self.setAttribute(QtCore.Qt.WA_StyledBackground, True)
+        # self.setStyleSheet('background-color: lightblack')
 
 
 class CNNApp(QWidget):
@@ -62,6 +62,15 @@ class CNNApp(QWidget):
         myFont.setBold(True)
         self.cnn_result.setFont(myFont)
         self.cnn_result.setAlignment(QtCore.Qt.AlignCenter)
+        
+        self.CNNPart = QLabel(self)
+        self.CNNPart.setMaximumSize(HEIGHT_INFO_IMAGE, WIDTH_INFO_IMAGE)
+        self.CNNPart.resize(HEIGHT_INFO_IMAGE, WIDTH_INFO_IMAGE)
+        self.CNNPart.setAlignment(QtCore.Qt.AlignCenter)
+        
+        self.CNNPart.move(130, 20)
+        self.CNNPart.setFont(myFont)
+        self.CNNPart.setText("Méthode par Apprentissage profond")
 
         layout = QVBoxLayout()
         layout.addWidget(self.image_label)
@@ -127,7 +136,7 @@ class CNNApp(QWidget):
 class App(QWidget):
     def __init__(self):
         super().__init__()
-    
+
         self.image_label = QLabel(self)
         #self.image_label.setMinimumSize(512, 512)
         #self.image_label.setGeometry(50, 150, 512, 512)
@@ -139,15 +148,25 @@ class App(QWidget):
         self.image_info = QLabel(self)
         self.image_info.setMaximumSize(HEIGHT_INFO_IMAGE, WIDTH_INFO_IMAGE)
         self.image_info.setAlignment(QtCore.Qt.AlignCenter)
-        #self.image_info.setText("Image: " + " - Taille: ")
+        
+        self.forgery_info = QLabel(self)
+        self.forgery_info.setMaximumSize(HEIGHT_INFO_IMAGE, WIDTH_INFO_IMAGE)
+        self.forgery_info.setAlignment(QtCore.Qt.AlignCenter)
+        self.forgery_info.setText("")
         
         self.forgeryButton = QPushButton('Détection de la falsification', self)
         self.forgeryButton.clicked.connect(self.forgeryDetection)
         
-        # Créer un bouton pour afficher le plot
-        self.plotButton = QPushButton('Afficher le plot', self)
-        self.plotButton.clicked.connect(self.displayPlot)
+        self.DBSCAN_Part = QLabel(self)
+        self.DBSCAN_Part.setMaximumSize(HEIGHT_INFO_IMAGE, WIDTH_INFO_IMAGE)
+        self.DBSCAN_Part.resize(HEIGHT_INFO_IMAGE, WIDTH_INFO_IMAGE)
+        self.DBSCAN_Part.setAlignment(QtCore.Qt.AlignCenter)
         
+        self.DBSCAN_Part.move(130, 20)
+        myFont=QtGui.QFont()
+        myFont.setBold(True)
+        self.DBSCAN_Part.setFont(myFont)
+        self.DBSCAN_Part.setText("Méthode par clustering")
         
         self.setFocusPolicy(QtCore.Qt.StrongFocus)
         self.setFocus()
@@ -156,14 +175,13 @@ class App(QWidget):
         self.detectButton.clicked.connect(self.keypointsDetection)
         
         self.forgeryButton.setVisible(False)
-        self.plotButton.setVisible(False)
         self.detectButton.setVisible(False)
        
         
         layout = QVBoxLayout()
         layout.addWidget(self.image_label)
         layout.addWidget(self.image_info)
-        layout.addWidget(self.plotButton)
+        layout.addWidget(self.forgery_info)
         layout.addWidget(self.forgeryButton)
         layout.addWidget(self.detectButton)
         layout.addWidget(self.loadButton)
@@ -174,11 +192,7 @@ class App(QWidget):
         self.imagesOCV = []
         self.current_index = 0
         self.image_filename = []
-        
     
-    def displayPlot(self):
-        forgery_detector = ForgeryDetection(self.imagesOCV[self.current_index])
-        forgery_detector.displayPlot()
             
     def keypointsDetection(self):
         forgery_detector = ForgeryDetection(self.imagesOCV[self.current_index])
@@ -199,21 +213,21 @@ class App(QWidget):
         img, name = forgery_detector.ForgeryDetect(self.imagesOCV[self.current_index], self.image_filename[self.current_index])
         
         if img is not None:
-            self.plotButton.setVisible(True)
             qimage = QImage(img.data, img.shape[1], img.shape[0], QImage.Format_RGB888)
             self.images.append(qimage)
             self.image_filename.append(name)
             self.imagesOCV.append(img)
             self.DisplayImages() 
+        else:
+            self.forgery_info.setText(self.image_filename[self.current_index] + " n'est pas falsifiée !")
         
     
             
     def convert_cv_qt(self):
         file_names, _ = QFileDialog.getOpenFileNames(self, 'Ouvrir une image', '', 'Images (*.png *.xpm *.jpeg *.bmp *.tif *.jpg)')
-        
+        self.forgery_info.setText("")
         if(len(file_names) > 0):
             self.detectButton.setVisible(True)
-            self.plotButton.setVisible(False)
             self.forgeryButton.setVisible(False)
             self.images = []
             self.imagesOCV = []
@@ -258,5 +272,6 @@ class App(QWidget):
 if __name__=="__main__":
     app = QApplication([])
     a = MainWindowApp()
-    a.show()
+    # a.show()
+    a.showMaximized()
     sys.exit(app.exec_())
