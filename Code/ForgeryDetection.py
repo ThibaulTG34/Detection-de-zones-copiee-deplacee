@@ -84,7 +84,7 @@ class ForgeryDetection:
         from sklearn.metrics import silhouette_score
 
         
-        epsilon_list = [i for i in range(1,50)]
+        epsilon_list = [i for i in range(1,35)]
         print(epsilon_list)
         minPt_list = [2, 5, 10, 20, 25]
 

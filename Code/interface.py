@@ -200,11 +200,12 @@ class App(QWidget):
         
         if img is not None:
             self.forgeryButton.setVisible(True)    
-            qimage = QImage(img.data, img.shape[1], img.shape[0], QImage.Format_RGB888)
+            qimage = QImage(img.data, img.shape[1], img.shape[0], QImage.Format_BGR888)
             self.images.append(qimage)
             self.image_filename.append(filename)
             self.imagesOCV.append(img_orig)
             self.imagesOCV.append(img)
+            self.current_index += 1
             self.DisplayImages()    
             
     
@@ -213,10 +214,11 @@ class App(QWidget):
         img, name = forgery_detector.ForgeryDetect(self.imagesOCV[self.current_index], self.image_filename[self.current_index])
         
         if img is not None:
-            qimage = QImage(img.data, img.shape[1], img.shape[0], QImage.Format_RGB888)
+            qimage = QImage(img.data, img.shape[1], img.shape[0], QImage.Format_BGR888)
             self.images.append(qimage)
             self.image_filename.append(name)
             self.imagesOCV.append(img)
+            self.current_index += 1
             self.DisplayImages() 
         else:
             self.forgery_info.setText(self.image_filename[self.current_index] + " n'est pas falsifiée !")
