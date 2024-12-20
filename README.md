@@ -18,3 +18,7 @@ L'image de gauche est l'image originale.
 ### Algorithme de clustering
 <div align="center"><img src="https://github.com/ThibaulTG34/Detection-de-zones-copiee-deplacee/blob/main/Code/R%C3%A9sultats/detection-trouvee.jpg" alt="image" style="width:350px;height:auto;">
 </div>
+
+### Résultats
+<div align="center"><img src="https://github.com/ThibaulTG34/Detection-de-zones-copiee-deplacee/blob/main/Code/R%C3%A9sultats/matrice-confusion.png" alt="image" style="width:350px;height:auto;">
+</div>
