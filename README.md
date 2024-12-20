@@ -16,6 +16,5 @@ L'image de gauche est l'image originale.
 </div>
 
 ### Algorithme de clustering
-<div align="center"><img src="https://github.com/ThibaulTG34/Detection-de-zones-copiee-deplacee/blob/main/Code/R%C3%A9sultats/sift_keypoints.jpg" alt="image" style="width:350px;height:auto;">
-<img src="https://github.com/ThibaulTG34/Detection-de-zones-copiee-deplacee/blob/main/Code/R%C3%A9sultats/sift_keypoints_forged.jpg" alt="image" style="width:350px;height:auto;">
+<div align="center"><img src="https://github.com/ThibaulTG34/Detection-de-zones-copiee-deplacee/blob/main/Code/R%C3%A9sultats/detection-trouvee.jpg" alt="image" style="width:350px;height:auto;">
 </div>
